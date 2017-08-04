@@ -1,31 +1,41 @@
 package databasetest
 
 import (
-	"os/exec"
-	"fmt"
-	"os"
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/mattes/migrate"
+	"github.com/mattes/migrate/database/mysql"
+	_ "github.com/mattes/migrate/source/file"
 )
 
-func InitDatabase(path, driver, conn string)  {
-	dir:=os.Getenv("GOPATH") + "/src/" + path
-	resetDatabase(dir,driver, conn)
-	migDatabase(dir,driver, conn)
+func InitDatabase(dataSourceName, sourceUrl string)  {
+	Up(dataSourceName,sourceUrl)
+	Down(dataSourceName,sourceUrl)
 }
-func resetDatabase(dir, driver, conn string) {
-	cmd := exec.Command("bash", "-c", "bee migrate reset -driver="+driver+" -conn='"+conn+"'")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(out))
+
+
+
+func Up(dataSourceName, sourceUrl string) {
+	db, _ := sql.Open("mysql", dataSourceName)
+	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	m, _ := migrate.NewWithDatabaseInstance(
+		sourceUrl,
+		"mysql",
+		driver,
+	)
+	m.Close()
+	m.Up()
 }
-func migDatabase(dir, driver, conn string)  {
-	cmd := exec.Command("bash", "-c", "bee migrate -driver="+driver+" -conn='"+conn+"'")
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(out))
+
+func Down(dataSourceName, sourceUrl string) {
+	db, _ := sql.Open("mysql", dataSourceName)
+	driver, _ := mysql.WithInstance(db, &mysql.Config{})
+	m, _ := migrate.NewWithDatabaseInstance(
+		sourceUrl,
+		"mysql",
+		driver,
+	)
+	m.Close()
+	m.Down()
 }
